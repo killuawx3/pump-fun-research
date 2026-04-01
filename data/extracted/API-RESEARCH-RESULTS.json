@@ -1,0 +1,193 @@
+{
+  "research_date": "2026-04-01T12:47:00Z",
+  "summary": "Comprehensive pump.fun API research results",
+  
+  "working_apis": {
+    "frontend_api_v3": {
+      "base_url": "https://frontend-api-v3.pump.fun",
+      "status": "PARTIALLY_WORKING",
+      "notes": "The /coins endpoint works and returns live data. Sub-paths like /coins/trending, /coins/king-of-the-hill, /coins/recently-created return HTTP 200 but content-length: 0 (empty body). Likely requires Cloudflare browser challenge tokens for those endpoints. /health returns {status: ok}. /api returns HTTP 401.",
+      "working_endpoints": [
+        {
+          "path": "/coins",
+          "method": "GET",
+          "params": "offset, limit, sort (last_trade_timestamp, market_cap), order (ASC, DESC), includeNsfw",
+          "status": "WORKING - returns live coin data",
+          "data_file": "coins-latest.json",
+          "description": "Returns array of coin objects with full details including mint, name, symbol, market_cap, bonding curve status, etc."
+        },
+        {
+          "path": "/coins?sort=market_cap&order=DESC",
+          "method": "GET",
+          "status": "WORKING",
+          "data_file": "coins-by-marketcap.json"
+        },
+        {
+          "path": "/coins?sort=last_trade_timestamp&order=DESC",
+          "method": "GET", 
+          "status": "WORKING",
+          "data_file": "coins-by-last-trade.json"
+        },
+        {
+          "path": "/health",
+          "method": "GET",
+          "status": "WORKING - returns {status: ok}"
+        }
+      ],
+      "empty_endpoints": [
+        "/coins/trending",
+        "/coins/king-of-the-hill",
+        "/coins/recently-created",
+        "/coins/featured",
+        "/coins/about-to-graduate",
+        "/coins/graduated",
+        "/coins/list"
+      ],
+      "auth_required_endpoints": [
+        "/api",
+        "/api/coins"
+      ]
+    },
+    
+    "advanced_api_v2": {
+      "base_url": "https://advanced-api-v2.pump.fun",
+      "status": "WORKING - EXCELLENT",
+      "notes": "Has full Swagger UI documentation at /api. Returns rich data with holder info, sniper counts, KOL tracking, and more.",
+      "swagger_url": "https://advanced-api-v2.pump.fun/api",
+      "swagger_json_url": "https://advanced-api-v2.pump.fun/api-json",
+      "working_endpoints": [
+        {
+          "path": "/",
+          "method": "GET",
+          "status": "WORKING - returns 'Hello World!'"
+        },
+        {
+          "path": "/health",
+          "method": "GET",
+          "status": "WORKING - returns 'OK'"
+        },
+        {
+          "path": "/coins/list",
+          "method": "GET",
+          "params": "limit, sort (market_cap), order (DESC)",
+          "status": "WORKING - returns coins with holders, sniper info",
+          "data_file": "coins-list-by-marketcap.json",
+          "description": "Returns {coins: [...]} with rich data including numHolders, numKolsTraded, marketCap, volume, bondingCurveProgress, sniperCount, topHoldersPercentage, etc."
+        },
+        {
+          "path": "/coins/kolscan",
+          "method": "GET",
+          "status": "WORKING - returns KOL-tracked coins",
+          "data_file": "coins-kolscan.json",
+          "description": "Returns coins that KOLs (Key Opinion Leaders) have traded"
+        },
+        {
+          "path": "/coins/graduated",
+          "method": "GET",
+          "status": "WORKING - returns graduated coins",
+          "data_file": "coins-graduated.json",
+          "description": "Returns coins that completed bonding curve (100% progress)"
+        },
+        {
+          "path": "/coins/metadata/{mint}",
+          "method": "GET",
+          "status": "WORKING",
+          "data_file": "coin-metadata-example.json",
+          "description": "Returns rich metadata including devHoldingAmount, topTenHoldersOwnedAmount, snipersOwnedAmount, num_holders, progress, ATH market cap, buy/sell transactions, etc."
+        },
+        {
+          "path": "/coins/top-holders/{mint}",
+          "method": "GET",
+          "status": "WORKING",
+          "data_file": "coin-top-holders-example.json",
+          "description": "Returns top holder addresses and amounts for a specific coin"
+        },
+        {
+          "path": "/coins/top-holders-and-sol-balance/{mint}",
+          "method": "GET",
+          "status": "WORKING",
+          "data_file": "coin-holders-sol-balance.json",
+          "description": "Returns top holders with SOL balance information"
+        },
+        {
+          "path": "/coins/top-holders/batch",
+          "method": "POST",
+          "status": "AVAILABLE (requires body with mints array)"
+        },
+        {
+          "path": "/coins/metadatas",
+          "method": "POST",
+          "status": "AVAILABLE (requires body with mints array)"
+        },
+        {
+          "path": "/coins/mints",
+          "method": "POST",
+          "status": "AVAILABLE (requires body with mints array)"
+        }
+      ]
+    }
+  },
+  
+  "non_working_apis": {
+    "client_api_heroku": {
+      "url": "https://client-api-2-74b1891ee9f9.herokuapp.com",
+      "status": "DEAD - Heroku app no longer exists (404 'No such app')"
+    },
+    "frontend_api_v2": {
+      "url": "https://frontend-api-v2.pump.fun",
+      "status": "503 - Behind Cloudflare challenge, service temporarily unavailable"
+    },
+    "frontend_api_no_version": {
+      "url": "https://frontend-api.pump.fun",
+      "status": "530 - Cloudflare error 1016 (Origin DNS error)"
+    },
+    "advanced_api_no_version": {
+      "url": "https://advanced-api.pump.fun",
+      "status": "530 - Cloudflare error 1016 (Origin DNS error)"
+    },
+    "pump_fun_api_coins": {
+      "url": "https://pump.fun/api/coins",
+      "status": "404 - Next.js 404 page (no server-side API at this path)"
+    }
+  },
+  
+  "infrastructure_info": {
+    "frontend": "Next.js on Vercel (dpl_6DVromgydKQNizBinEhUnRxqArxD)",
+    "cdn": "Cloudflare",
+    "api_framework": "NestJS (based on Swagger/OpenAPI style)",
+    "config_from_frontend": {
+      "livechatUrl": "wss://livechat.pump.fun",
+      "livestreamsUrl": "https://livestream-api.pump.fun",
+      "clientServerUrl": "https://frontend-api-v3.pump.fun"
+    }
+  },
+  
+  "coin_data_schema": {
+    "fields_from_frontend_api": [
+      "mint", "initialized", "name", "symbol", "description",
+      "image_uri", "metadata_uri", "twitter", "telegram", "website",
+      "bonding_curve", "associated_bonding_curve", "creator",
+      "created_timestamp", "complete", "virtual_sol_reserves",
+      "virtual_token_reserves", "total_supply", "show_name",
+      "last_trade_timestamp", "market_cap", "nsfw", "is_banned",
+      "real_sol_reserves", "real_token_reserves", "updated_at",
+      "reply_count", "is_currently_live", "ath_market_cap",
+      "ath_market_cap_timestamp", "program", "token_program",
+      "quote_mint", "base_decimals", "quote_decimals", "pool_address",
+      "is_cashback_enabled", "usd_market_cap", "mayhem_state",
+      "tokenized_agent", "username", "profile_image", "banner_uri",
+      "hide_banner", "livestream_ban_expiry"
+    ],
+    "fields_from_advanced_api": [
+      "coinMint", "dev", "name", "ticker", "imageUrl",
+      "creationTime", "numHolders", "numKolsTraded", "marketCap",
+      "volume", "currentMarketPrice", "bondingCurveProgress",
+      "sniperCount", "graduationDate", "holders", "isMayhemMode",
+      "allTimeHighMarketCap", "poolAddress", "twitter", "telegram",
+      "website", "hasTwitter", "hasTelegram", "hasWebsite", "hasSocial",
+      "twitterReuseCount", "devHoldingsPercentage", "buyTransactions",
+      "sellTransactions", "transactions", "sniperOwnedPercentage",
+      "topHoldersPercentage", "tokenProgram", "program", "platform"
+    ]
+  }
+}
