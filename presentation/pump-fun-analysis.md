@@ -58,7 +58,7 @@ Pump.fun is a **permissionless token launchpad** on Solana that drastically lowe
 
 ### The Mathematical Model
 
-Pump.fun uses a **constant-product bonding curve** (x * y = k) with **virtual reserves** to ensure a non-zero starting price.
+Pump.fun uses a **constant-product bonding curve** (x × y = k) with **virtual reserves** to ensure a non-zero starting price. This is mathematically identical to Uniswap V2's CPAMM formula, but applied in a fundamentally different context: instead of a real liquidity pool with deposited assets on both sides, pump.fun creates a synthetic pool seeded with "virtual" SOL that doesn't actually exist. This lets every token start trading from zero real liquidity while still having a well-defined price curve.
 
 #### Initial Parameters
 
@@ -101,13 +101,23 @@ To buy Δ tokens:
 
 > The curve creates a **~14.7x price increase** from start to graduation. Early buyers get significantly better prices, creating strong FOMO dynamics. The virtual reserves ensure the price is never zero, preventing division-by-zero errors and ensuring the first buyer always pays a real price.
 
+#### Why Every Token Graduates at the Same Price
+
+Because every token launches with identical parameters — same virtual reserves, same supply, same curve shape — every single token that reaches graduation does so at the exact same price (~0.000000411 SOL/token) and the same market cap (~$69K). This is a deliberate design choice: it removes complexity, makes progress universally comparable, and prevents manipulation through custom curve parameters.
+
+#### The Graduation Price Discontinuity
+
+An important subtlety: the virtual_sol = 30 parameter was precisely calculated to minimize price disruption at graduation. For zero fees, the bonding curve price and the PumpSwap pool price would be nearly identical (the virtual token reserve of 1,073,000,000 is within 43,231 tokens of the mathematically perfect value). However, pump.fun takes ~6 SOL in migration fees, creating approximately a 7% price drop at the moment of graduation. This gap is a deliberate business decision — it's how the protocol monetizes graduation — not a design flaw.
+
 #### What Happens at Graduation
 
 When ~85 real SOL has been deposited:
-- ~793.1M tokens have been purchased from the curve
-- ~206.9M tokens remain (allocated for DEX liquidity)
-- Liquidity (~$12,000 worth) is automatically deposited to PumpSwap
-- LP tokens are burned (liquidity is locked permanently)
+- ~793.1M tokens have been purchased from the curve (users hold them)
+- ~206.9M tokens remain — these were **never on the bonding curve**. They were set aside from creation specifically for LP seeding.
+- ~79 SOL (after fees) + 206.9M reserved tokens → PumpSwap LP pool
+- **LP tokens are burned** — the liquidity is permanently locked. No one (not pump.fun, not the creator, not anyone) can ever withdraw it. This eliminates the most common rug pull vector in DeFi: pulling LP.
+
+> **Note:** LP token burning prevents liquidity removal but does NOT prevent other scams like creator token dumps, insider sniping, or coordinated pump-and-dumps.
 
 ---
 
@@ -115,7 +125,7 @@ When ~85 real SOL has been deposited:
 
 ### $1 Billion+ in Under 18 Months
 
-Pump.fun is possibly the **most revenue-efficient company in crypto history** on a per-employee basis.
+Pump.fun is possibly the **most revenue-efficient company in crypto history** on a per-employee basis. The charts below tell the story of how a sub-10 person team built a billion-dollar revenue engine.
 
 #### Revenue Streams
 
@@ -125,6 +135,32 @@ Pump.fun is possibly the **most revenue-efficient company in crypto history** on
 | **Token Creation Fee** | ~0.02 SOL | Nominal fee for minting |
 | **Migration Fee** | ~1.5 SOL | Fee upon graduation to DEX |
 | **PumpSwap Trading Fee** | 0.25% | Post-graduation trading (launched Mar 2025) |
+
+### The Revenue Story in Data
+
+The following chart shows pump.fun's daily revenue alongside its cumulative total. Two things jump out: the extraordinary volatility of daily income (driven by memecoin mania cycles), and the relentless upward march of cumulative revenue that crossed $1 billion by early 2026.
+
+![pump.fun Daily & Cumulative Revenue](../analysis/charts/revenue_over_time.png)
+
+The daily revenue chart reveals the "memecoin supercycle" of late 2024 to early 2025 in vivid detail. Revenue was near-negligible for the first several months after launch, then exploded to a **peak of $15.5M in a single day** in January 2025 — coinciding with peak memecoin mania on Solana. The 30-day moving average smooths through the noise and shows the true trend: a dramatic spike followed by a gradual settling to a sustainable baseline of $1-3M/day. Even at this "cool-down" level, the platform generates tens of millions per month.
+
+The cumulative revenue curve (bottom panel) is perhaps more telling. The steep inflection point around November 2024 shows when pump.fun transitioned from a niche experiment to a money-printing machine. Even after daily revenue cooled, the cumulative line kept climbing steadily — the platform had found a sustainable floor.
+
+### Monthly Revenue Breakdown
+
+Breaking the revenue into monthly buckets makes the boom-and-bust cycle even more legible:
+
+![pump.fun Monthly Revenue](../analysis/charts/monthly_revenue.png)
+
+The color gradient (pale yellow to deep red) maps directly to revenue intensity. The platform started with near-zero revenue in March 2024, gradually built through the summer, then detonated in Q4 2024. **January 2025 was the all-time peak at ~$148M in a single month** — nearly $5M per day on average. The subsequent decline was sharp but stabilized around $20-40M/month, a level that would be the envy of most crypto companies. By March 2026, monthly revenue sat at ~$24M — still generating nearly $300M annually from a team of fewer than 10 people.
+
+### Quarterly Revenue Trajectory
+
+Zooming out further to quarterly view reveals the macro trajectory:
+
+![pump.fun Quarterly Revenue](../analysis/charts/quarterly_revenue.png)
+
+The quarterly lens tells the cleanest story: **pump.fun went from $2M in Q1 2024 to $263M in Q1 2025 — a 131x increase in four quarters.** The subsequent correction brought quarterly revenue down to $77M by Q4 2025, but the slight uptick to $82M in Q1 2026 suggests the platform may be finding a stable floor. At ~$80M/quarter (~$320M annualized), pump.fun remains one of the highest-revenue protocols in all of crypto.
 
 #### Revenue Milestones
 
@@ -164,7 +200,53 @@ Pump.fun is possibly the **most revenue-efficient company in crypto history** on
 
 ---
 
-## 5. The Contract Architecture
+## 5. The Vertical Integration: PumpSwap
+
+### From Revenue Leak to Revenue Capture
+
+Perhaps the most strategically significant move in pump.fun's history was the launch of **PumpSwap** in March 2025. Before PumpSwap, every token that graduated from the bonding curve migrated to Raydium — meaning all post-graduation trading fees (often the most lucrative phase for successful tokens) went to a competitor.
+
+```
+BEFORE (Jan 2024 – Mar 2025):
+  Pump.fun (token creation) ──graduation──> Raydium (DEX trading)
+  
+  Revenue: Only bonding curve fees (~$0-69K market cap range)
+
+AFTER (Mar 2025 – Present):
+  Pump.fun (token creation) ──graduation──> PumpSwap (own DEX)
+  
+  Revenue: Bonding curve fees + ALL post-graduation trading fees
+```
+
+### The Combined Fee Picture
+
+The following chart is one of the most important in this entire analysis. It shows the stacked daily fees from both the bonding curve (orange) and PumpSwap DEX (blue), revealing how the revenue composition evolved:
+
+![pump.fun Ecosystem Combined Daily Fees](../analysis/charts/combined_ecosystem_fees.png)
+
+Several critical insights emerge from this chart:
+
+**1. PumpSwap transformed the revenue model.** Before April 2025, all revenue came from bonding curve fees (orange only). After PumpSwap launched, a second revenue layer appeared (blue). By late 2025, PumpSwap fees frequently equaled or exceeded bonding curve fees on any given day.
+
+**2. The cumulative numbers are staggering.** The summary box shows $986M from bonding curve fees and $545M from PumpSwap — a combined **$1.53 billion** in total ecosystem fees. PumpSwap alone generated over half a billion dollars in roughly one year of operation.
+
+**3. Revenue diversification creates resilience.** The secondary peak around October 2025 (~$8.5M combined daily) was driven largely by DEX trading activity, not new token launches. This means pump.fun now earns significant revenue even when the pace of new token creation slows — a crucial evolution from its earlier model where revenue was entirely dependent on new launches.
+
+**4. The steady state is impressive.** By early 2026, combined daily fees settled around $3-4M with a roughly even split between bonding curve and DEX fees. This ~$1B+ annualized run rate — from a team of fewer than 10 — remains extraordinary.
+
+### PumpSwap Volume Growth
+
+The raw trading volume on PumpSwap tells the story of rapid adoption followed by market normalization:
+
+![PumpSwap DEX Daily Volume](../analysis/charts/pumpswap_volume.png)
+
+PumpSwap went from zero to **$400-600M in daily volume within its first two months** — a staggering adoption curve that validated pump.fun's bet on vertical integration. The total cumulative volume reached **$68.9 billion** in roughly 13 months. The 7-day moving average peaked near $600M/day in May 2025 before gradually declining through the second half of the year. Notable features include a massive single-day spike to ~$900M in February 2026 (likely driven by a viral memecoin event), and a stabilization around $50-100M/day by early 2026.
+
+The decline from peak is not necessarily bearish — it mirrors the broader cooling of memecoin mania. The consistent $50-100M daily baseline represents genuine sustained demand, and the platform retains a built-in moat: every new token that graduates from pump.fun's bonding curve automatically lands on PumpSwap, providing a continuous stream of new trading pairs.
+
+---
+
+## 6. The Contract Architecture
 
 ### Solana Program IDs
 
@@ -220,7 +302,7 @@ PumpSwap Program (pAMMBay...)
 
 ---
 
-## 6. Market Dynamics
+## 7. Market Dynamics
 
 ### The Rise, Fall, and Recovery of Pump.fun's Dominance
 
@@ -246,43 +328,21 @@ Pump.fun's market share in Solana memecoin launches has been a rollercoaster:
 | **DAOS.fun** | Solana | DAO-structured launches | Low |
 | **Virtuals** | Base | AI agent tokens | Niche |
 
-#### The Vertical Integration Play
-
-```
-BEFORE (Jan 2024 – Mar 2025):
-  Pump.fun (token creation) ──graduation──> Raydium (DEX trading)
-  
-  Revenue: Only bonding curve fees (~$0-69K market cap range)
-
-AFTER (Mar 2025 – Present):
-  Pump.fun (token creation) ──graduation──> PumpSwap (own DEX)
-  
-  Revenue: Bonding curve fees + ALL post-graduation trading fees
-```
-
-> **Strategic Significance**: By launching PumpSwap, pump.fun captured the entire token lifecycle revenue. Previously, Raydium earned all post-graduation trading fees — often the most lucrative phase if a token succeeds.
-
 ---
 
-## 7. Key Data Insights
+## 8. The Reality of Token Outcomes
 
-### Token Statistics
+### What Actually Happens to Tokens After Launch
 
-| Metric | Value | Implication |
-|---|---|---|
-| **Total Tokens Launched** | ~17.5 million | Average ~38,000/day at peak |
-| **Graduation Rate** | 1.0% – 1.7% | 98.3-99% of tokens never reach DEX |
-| **Tokens > $1M Market Cap** | < 0.1% | Extreme power law distribution |
-| **Average Token Lifespan** | Minutes to hours | Most die within first day |
+The data paints a sobering picture. The following chart analyzed a live sample of 29 tokens on the platform, showing their market cap distribution and the top performers:
 
-### User Economics
+![pump.fun Live Token Analysis](../analysis/charts/live_token_analysis.png)
 
-| Metric | Value | Source |
-|---|---|---|
-| **Profitable Users** | **0.4%** | Research analysis |
-| **Users Who Made > $1,000** | ~3% of profitable users | On-chain data |
-| **Median User P&L** | Negative | Academic studies |
-| **Top Wallet Concentration** | High | Insider/sniper advantage |
+This snapshot captures the brutal power law dynamics of the pump.fun ecosystem:
+
+**Left panel (Market Cap Distribution):** Of 29 sampled tokens, **10 out of 29 (34%) had a market cap below $10K** — essentially dead or abandoned. Another 6 sat between $10-50K, and 4 between $50-100K. Combined, over **68% of tokens were valued under $100K**. Only a handful broke into the millions, and zero exceeded $100M. This distribution is consistent with the platform-wide statistic that only 1-1.7% of tokens ever graduate.
+
+**Right panel (Top 15 by Market Cap):** The extreme skew is immediately visible. The largest token in the sample dwarfs everything else so completely that the remaining 14 "top" tokens are barely visible at the same scale. This is the classic power law — a tiny fraction of tokens capture virtually all the value, while the vast majority are worthless.
 
 ### The Graduation Funnel
 
@@ -302,6 +362,24 @@ AFTER (Mar 2025 – Present):
    ~10-20 become "blue chip" memecoins
 ```
 
+### Token Statistics
+
+| Metric | Value | Implication |
+|---|---|---|
+| **Total Tokens Launched** | ~17.5 million | Average ~38,000/day at peak |
+| **Graduation Rate** | 1.0% – 1.7% | 98.3-99% of tokens never reach DEX |
+| **Tokens > $1M Market Cap** | < 0.1% | Extreme power law distribution |
+| **Average Token Lifespan** | Minutes to hours | Most die within first day |
+
+### User Economics
+
+| Metric | Value | Source |
+|---|---|---|
+| **Profitable Users** | **0.4%** | Research analysis |
+| **Users Who Made > $1,000** | ~3% of profitable users | On-chain data |
+| **Median User P&L** | Negative | Academic studies |
+| **Top Wallet Concentration** | High | Insider/sniper advantage |
+
 ### Trading Pattern Analysis
 
 - **Peak Activity**: November 2024 – January 2025 (memecoin supercycle)
@@ -311,7 +389,7 @@ AFTER (Mar 2025 – Present):
 
 ---
 
-## 8. The PUMP Token
+## 9. The PUMP Token
 
 ### $1.32 Billion ICO in 12 Minutes
 
@@ -343,7 +421,7 @@ In July 2025, pump.fun launched its own governance/utility token via an ICO — 
 
 ---
 
-## 9. Risks & Controversies
+## 10. Risks & Controversies
 
 ### The 98% Scam Problem
 
@@ -399,7 +477,7 @@ PROPONENTS ARGUE:                    CRITICS ARGUE:
 
 ---
 
-## 10. Future Outlook
+## 11. Future Outlook
 
 ### Near-Term Developments
 
@@ -469,7 +547,9 @@ Potential Future State (2026+):
 | Metric | Value |
 |---|---|
 | Cumulative Revenue | $1.02B+ |
+| Combined Ecosystem Fees | $1.53B (bonding curve + PumpSwap) |
 | Peak Daily Revenue | $15.5M |
+| PumpSwap Total Volume | $68.9B |
 | Tokens Launched | ~17.5M |
 | Graduation Rate | 1.0–1.7% |
 | Employees | < 10 |
@@ -487,6 +567,6 @@ Potential Future State (2026+):
 
 ---
 
-*Document prepared for research purposes. Data sourced from on-chain analytics, public reports, and industry research. All figures approximate and subject to change.*
+*Document prepared for research purposes. Data sourced from on-chain analytics (DefiLlama), public reports, and industry research. All figures approximate and subject to change.*
 
 *Last updated: April 2025*
